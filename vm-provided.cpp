@@ -52,14 +52,13 @@ unsigned long VM::bumpAllocate(){
     vmBumpPointer = vmBumpPointer + VM_PAGESIZE;
 
     if( vmBumpPointer >= VM_PMEMSIZE ){
-
-      //std::cerr << "[VM: All Physical Memory Paged]" << std::endl;
-
+      std::cerr << "[VM: All Physical Memory Paged]" << std::endl;
+      
     }
 
   }
 
-  //std::cerr << "[VM: Physical Allocation" << std::hex << paddr << " BP=" << vmBumpPointer << "]" << std::endl;
+  std::cerr << "[VM: Physical Allocation" << std::hex << paddr << " BP=" << vmBumpPointer << "]" << std::endl;
 
   return paddr;
 

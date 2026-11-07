@@ -90,7 +90,6 @@ void VM::vmMap(unsigned long vaddr, size_t size){
  *
  */
 unsigned long VM::vmTranslate(unsigned long addr){
-
   /*TODO: *Extract the PPO from the virtual address
           *Check your TLB for a cached translation if you have a TLB 
           *Starting from the root page table address
@@ -100,6 +99,9 @@ unsigned long VM::vmTranslate(unsigned long addr){
           *Assemble and return physical address
   */
   /*if(...){_tlb_hits++;} Don't forget to update the TLB hit counter*/
+  long physical_page_offset = addr & VM_PPOMASK;
+  long vpn = addr & VM_PPNMASK;
+
   _accesses++; /*Don't forget to update the access counter*/
   assert(false && "Abort: vmTranslate not implemented");
   return 0; 
