@@ -107,20 +107,13 @@ unsigned long VM::vmTranslate(unsigned long addr){
   return 0; 
 }
 
-
 void VM::Load(unsigned long addr){
-
   unsigned long translatedPaddr = vmTranslate(addr);
-  std::cerr << "Load[0x" << std::hex << addr << 
-                    "] => [" << translatedPaddr << "]" << std::endl;
-
+  std::cerr << "Load[0x" << std::hex << addr <<  "] => [" << translatedPaddr << "]" << std::endl;
 }
 
 
 void VM::Store(unsigned long addr){
-
   unsigned long translatedPaddr = vmTranslate(addr);
-  std::cerr << "Store[0x" << std::hex << addr << 
-                    "] => [" << translatedPaddr << "]" << std::endl;
-
+  std::cerr << "Store[0x" << std::hex << addr << "] => [" << translatedPaddr << "]" << std::endl;
 }
