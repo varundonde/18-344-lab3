@@ -27,47 +27,33 @@ pageTable::pageTable(){
 
 PTE pageTable::createEntry(unsigned long addr, size_t level){
 
-  PTE pte;
-  pte.pt = (pageTable *)0x0;
-  return pte;
-
 }
 
 PTE pageTable::getEntryDirect(unsigned long index){
-
-  return table[index];   
-
+  return table[index];
 }
 
 PTE pageTable::getEntry(unsigned long addr, size_t level){
-
-  /*TODO: extract the bitfield from the address that corresponds to
-          the page table index for this level's page table and return
-          the entry in this level's table at that index.
-
-          See also: getEntryIdFromAddr(addr, level)
-  */
-  PTE pte;
-  pte.pt = (pageTable *)0x0; 
-  return pte;
-
+  long index = getEntryIdFromAddr(addr, level);
+  // level 4 page table can just directly return the physical address of page
+  if (level == 3) {
+    return getEntryDirect(index);
+  }
+  return table[index];
 }
 
-/* Input:  unmodified address.  
-   Return: level-specific bit field from address that is index into 
-           to that level's page table
+/* Input:  unmodified address. 
+   Return: level-specific bit field from address that is index into to that level's page table
 */
-unsigned pageTable::getEntryIdFromAddr(unsigned long addr, size_t level){
- 
-  /*TODO: Use the level and the size of the page table to figure out which 
-          bits from the address to extract and return.  This bit field from
-          the address is the index into that level of page table
+unsigned pageTable::getEntryIdFromAddr(unsigned long addr, size_t level) {
+  // mask out the offset bits
+  long non_offset_addr_bits = (addr & VM_PPNMASK) >> VM_PPOBITS;
 
-          A good chec to be sure that you've extracted the bits correctly
-          is to have something like the following assertion in your code...
-          assert( (addr & mask) <= pageTableSize );
-  */
-
-  return 0; 
-
+  // shift right by the ([VM_PTABLEEVS - level] * VM_PTABITS (9))
+  // levels in range [0, 3] --> we convert to [1, 4] to extract the right bits
+  // [VPN 1, VPN 2, VPN 3, VPN 4] is layed out in this order, so we subtract levels 
+  long vpn_bits = non_offset_addr_bits >> ((VM_PTABLEVS - (level + 1)) * VM_PTABBITS); 
+  long index_bits = vpn_bits & VM_PTABMASK;
+  assert (index_bits <= pageTableSize);
+  return index_bits;
 }

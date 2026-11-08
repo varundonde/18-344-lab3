@@ -22,5 +22,4 @@ public:
   PTE getEntry(unsigned long,size_t);
   PTE getEntryDirect(unsigned long);
   PTE createEntry(unsigned long,size_t);
-
 };

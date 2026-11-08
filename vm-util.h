@@ -9,6 +9,7 @@
 
 #define VM_PMEMSIZE 0xF000
 
+#define VM_PTABMASK 0x1FF;
 #define VM_PTABBITS 9
 #define VM_PTABSIZE ((1<<VM_PTABBITS))
 
