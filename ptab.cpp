@@ -26,7 +26,17 @@ pageTable::pageTable(){
 }
 
 PTE pageTable::createEntry(unsigned long addr, size_t level){
-
+  long index = getEntryIdFromAddr(addr, level);
+  PTE entry;
+  if (level == 3) {
+    // assume we leave a new leaf as paged out originally since no ppn is passed in...?
+    entry.pte = new pageTableEntry(VM_PAGEDOUT);
+  } else {
+    entry.pt = new pageTable();
+  }
+  table[index] = entry;
+  return entry;
+  
 }
 
 PTE pageTable::getEntryDirect(unsigned long index){
@@ -49,9 +59,8 @@ unsigned pageTable::getEntryIdFromAddr(unsigned long addr, size_t level) {
   // mask out the offset bits
   long non_offset_addr_bits = (addr & VM_PPNMASK) >> VM_PPOBITS;
 
-  // shift right by the ([VM_PTABLEEVS - level] * VM_PTABITS (9))
-  // levels in range [0, 3] --> we convert to [1, 4] to extract the right bits
-  // [VPN 1, VPN 2, VPN 3, VPN 4] is layed out in this order, so we subtract levels 
+  // levels in range [0, 3] --> we convert to [1, 4] to extract the right bits, 
+  // see screenshot in @handout_8b.pdf, addr layout is [VPN 1, VPN 2, VPN 3, VPN 4, VPO/PPO]
   long vpn_bits = non_offset_addr_bits >> ((VM_PTABLEVS - (level + 1)) * VM_PTABBITS); 
   long index_bits = vpn_bits & VM_PTABMASK;
   assert (index_bits <= pageTableSize);
