@@ -61,34 +61,35 @@ void VM::vmPageFaultHandler(pageTableEntry *pte){
 void VM::vmMap(unsigned long vaddr, size_t size){
 
   std::cerr << "[VM: Mapping Region " << std::hex << vaddr << " " << std::dec << size << "B]" << std::endl;
+  if (size == 0) {
+    return;
+  }
 
-  /*TODO: Compute the number of pages in the region to be mapped
-          Create an entry in the page table for each page to be mapped 
-  */
-  assert(false && "Abort: vmMap() unimplemented");
+  unsigned long offset = vaddr & VM_PPOMASK;
+  // calculate number of pages in case original address is unaligned
+  // eg. vaddr = 0x1800 and size = VM_PAGESIZE (0x1000) spans
+  // 0x1800 through 0x27FF, so create pages 0x1000 and 0x2000, not just 1 page
+  size_t pages = (offset + size + VM_PAGESIZE - 1) / VM_PAGESIZE;
+  for (size_t region = 0; region < pages ; ++region) {
+    PTE pte = root;
+    unsigned long cur_vaddr = vaddr + region * VM_PAGESIZE;
+    for (int level = 0 ; level < (int) levels ; ++level) {
+      pageTable *pt = pte.pt;
+      // handle segfault case
+      if (pt == NULL) {
+        std::cerr << "Unmapped page at address 0x" << std::hex << cur_vaddr << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      
+      pte = pt->getEntry(cur_vaddr, level);
+      // make a new pageTable / pageTableEntry if it doesn't already exist
+      if (pte.pt == NULL && pte.pte == NULL) {
+        pte = pt->createEntry(cur_vaddr, level);
+      }
+    }
+  }
 }
 
-/*
- * Task:
- * Implement vmTranslate
- *
- * Arguments: 
- * vaddr - virtual address to translate 
- *
- * Requires:
- * VM_PPOMASK - physical page offset mask
- * VM_PPOBITS - number of bits in the physical page offset 
- * VM_PAGEDOUT - a page is paged out if its ppn == VM_PAGEDOUT
- * addToReplacementList() - add a replaced page to the replacement list
- *
- * Behavior:
- * Translate the virtual address addr to its corresponding
- * physical address (i.e., using the PPN and PPO), 
- * checking the TLB, if implemented,
- * then checking the page table and handling page faults.
- *
- *
- */
 unsigned long VM::vmTranslate(unsigned long addr){
   // extract ppo from virtual address
   unsigned long ppo = addr & VM_PPOMASK;
@@ -128,7 +129,7 @@ unsigned long VM::vmTranslate(unsigned long addr){
   // assemble and return physical address
   unsigned long phys_addr = (pte.pte->ppn | ppo); 
 
-  _accesses++; /*Don't forget to update the access counter*/
+  _accesses++;
   return phys_addr; 
 }
 
