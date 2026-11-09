@@ -1,0 +1,18 @@
+# Fifteen pages exceed the 14 physical pages available from bumpAllocate.
+# Useful for replacement behavior; TLB invalidation semantics deserve inspection.
+map 0x80000 61440
+load 0x80000
+load 0x81000
+load 0x82000
+load 0x83000
+load 0x84000
+load 0x85000
+load 0x86000
+load 0x87000
+load 0x88000
+load 0x89000
+load 0x8a000
+load 0x8b000
+load 0x8c000
+load 0x8d000
+load 0x8e000

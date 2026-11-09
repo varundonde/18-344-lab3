@@ -1,0 +1,4 @@
+# Expected access violation after a valid access.
+map 0x70000 4096
+load 0x70000
+load 0x71000

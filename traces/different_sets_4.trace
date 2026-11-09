@@ -1,0 +1,8 @@
+# Four pages in distinct low-four-bit VPN sets; compare with same_set_4.
+map 0x10000 16384
+repeat 32
+  load 0x10000
+  load 0x11000
+  load 0x12000
+  load 0x13000
+end

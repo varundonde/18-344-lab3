@@ -1,0 +1,7 @@
+# Repeated offsets on one mapped 4 KiB page: one cold translation, then reuse.
+map 0x1000 4096
+repeat 64
+  load 0x1000
+  store 0x1040
+  load 0x1fff
+end

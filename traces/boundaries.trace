@@ -1,0 +1,12 @@
+# Unaligned mapping plus offsets around 4 KiB, 2 MiB, and 1 GiB boundaries.
+map 0x1fff 2
+map 0x1fffff 2
+map 0x3fffffff 2
+repeat 8
+  load 0x1fff
+  store 0x2000
+  load 0x1fffff
+  store 0x200000
+  load 0x3fffffff
+  store 0x40000000
+end

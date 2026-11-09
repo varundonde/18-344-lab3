@@ -1,0 +1,11 @@
+# Four pages whose VPN low four bits match: conflict probe for a 16-set TLB.
+map 0x10000 4096
+map 0x20000 4096
+map 0x30000 4096
+map 0x40000 4096
+repeat 32
+  load 0x10000
+  load 0x20000
+  load 0x30000
+  load 0x40000
+end

@@ -1,0 +1,10 @@
+{
+  "hot_page": {"expected": "ok", "group": "locality", "note": "One compulsory page fault; repeated accesses should benefit from TLB reuse."},
+  "cold_stream": {"expected": "ok", "group": "locality", "note": "Twelve first-touch pages; a TLB cannot remove compulsory walks."},
+  "sequential_12": {"expected": "ok", "group": "capacity", "note": "Twelve-page working set; compare miss frequency across TLB capacities."},
+  "same_set_4": {"expected": "ok", "group": "associativity", "note": "Four pages with the same low-four-bit VPN index."},
+  "different_sets_4": {"expected": "ok", "group": "associativity", "note": "Four pages in distinct low-four-bit VPN sets."},
+  "boundaries": {"expected": "ok", "group": "page_table", "note": "Unaligned map and 4 KiB, 2 MiB, and 1 GiB crossings."},
+  "unmapped_access": {"expected": "fault", "group": "correctness", "note": "Access outside mapped region should fail."},
+  "page_pressure": {"expected": "ok", "group": "replacement", "note": "Fifteen unique pages force physical page replacement."}
+}
