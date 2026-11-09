@@ -90,21 +90,46 @@ void VM::vmMap(unsigned long vaddr, size_t size){
  *
  */
 unsigned long VM::vmTranslate(unsigned long addr){
-  /*TODO: *Extract the PPO from the virtual address
-          *Check your TLB for a cached translation if you have a TLB 
-          *Starting from the root page table address
-          *Traverse the page table to get the Entry for this address 
-          *If paged out, handle page fault, add addr to replacement list
-          *Update TLB to cache new translation if you have a TLB 
-          *Assemble and return physical address
-  */
-  /*if(...){_tlb_hits++;} Don't forget to update the TLB hit counter*/
-  long physical_page_offset = addr & VM_PPOMASK;
-  long vpn = addr & VM_PPNMASK;
+  // extract ppo from virtual address
+  unsigned long ppo = addr & VM_PPOMASK;
+
+  /* TODO: 
+  * add TLB check for cached translation once we implement TLB
+  * if hit : tlb_hits ++ 
+   */ 
+  
+  // traverse from root to get entry for this address
+  PTE pte = root;
+  for(int level = 0; level < (int) levels; level++){
+    pageTable *pt = pte.pt;
+    // handle segfault case
+    if (pt == NULL) {
+      std::cerr << "Unmapped page at address 0x" << std::hex << addr << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    pte = pt->getEntry(addr, level);
+  }
+
+  // handle segfault case
+  pageTableEntry *final_pte = pte.pte;
+  if (final_pte == NULL) {
+    std::cerr << "Unmapped page table entry at address 0x" << std::hex << addr << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  // handle page fault if paged out, add to replacement list
+  if (final_pte->ppn == VM_PAGEDOUT) {
+    vmPageFaultHandler(final_pte);
+    addToReplacementList(addr);
+
+  }
+  // TODO: update TLB to cache new translation once we implement TLB
+
+  // assemble and return physical address
+  unsigned long phys_addr = (pte.pte->ppn | ppo); 
 
   _accesses++; /*Don't forget to update the access counter*/
-  assert(false && "Abort: vmTranslate not implemented");
-  return 0; 
+  return phys_addr; 
 }
 
 void VM::Load(unsigned long addr){
