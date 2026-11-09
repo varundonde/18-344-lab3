@@ -1,232 +1,196 @@
 #!/usr/bin/env python3
-"""Build isolated VM variants, run shared traces, and plot handout metrics."""
+"""Run the shared lab traces against VM source variants and plot the results."""
 
 import argparse
 import csv
 import json
-import re
-import shlex
 import subprocess
-import sys
+from enum import StrEnum
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 ROOT = Path(__file__).resolve().parent
-TRACES = ROOT / "traces"
-SOURCES = ("pte.cpp", "vm-provided.cpp", "ptab.cpp", "tlb.cpp", "vm-student.cpp")
-HEADERS = ("vm.h", "ptab.h", "pte.h", "tlb.h", "pte-util.h", "vm-util.h")
-STATS = re.compile(r"^TRACE_STATS accesses=(\d+) tlb_hits=(\d+) page_faults=(\d+)$", re.M)
-UNMAPPED = re.compile(r"Unmapped page", re.I)
-MAX_EXPANDED = 100_000
+SOURCE_FILES = ("pte.cpp", "vm-provided.cpp", "ptab.cpp", "tlb.cpp", "vm-student.cpp")
 
 
-def parse_variant(value):
-    if "=" not in value:
-        raise argparse.ArgumentTypeError("use NAME=SOURCE_DIRECTORY")
-    name, directory = value.split("=", 1)
-    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]*", name):
-        raise argparse.ArgumentTypeError("variant name must use letters, digits, _ or -")
-    path = Path(directory).expanduser().resolve()
-    missing = [file for file in (*SOURCES, *HEADERS) if not (path / file).is_file()]
-    if missing:
-        raise argparse.ArgumentTypeError(f"{path}: missing {', '.join(missing)}")
-    return name, path
+class RunStatus(StrEnum):
+    SUCCESS = "success"
+    SUCCESS_WITH_PAGE_FAULTS = "success_with_page_faults"
+    UNMAPPED_ACCESS = "unmapped_access"
+
+
+class RunSummary:
+    def __init__(self, variant, trace, group, exit_code, accesses=None,
+                 tlb_hits=None, page_faults=None):
+        self.variant = variant
+        self.trace = trace
+        self.group = group
+        self.exit_code = exit_code
+        self.accesses = accesses
+        self.tlb_hits = tlb_hits
+        self.page_faults = page_faults
+
+        if accesses is None:
+            self.status = RunStatus.UNMAPPED_ACCESS
+            self.tlb_misses = None
+            self.estimated_translation_references = None
+            self.estimated_total_references = None
+        else:
+            self.status = (RunStatus.SUCCESS_WITH_PAGE_FAULTS if page_faults
+                           else RunStatus.SUCCESS)
+            self.tlb_misses = accesses - tlb_hits
+            self.estimated_translation_references = 4 * self.tlb_misses
+            self.estimated_total_references = accesses + self.estimated_translation_references
 
 
 def expand_trace(path):
-    """Validate the small trace DSL and return map/load/store commands."""
-    frames = [([], 1)]
-    for number, original in enumerate(path.read_text().splitlines(), 1):
-        line = original.split("#", 1)[0].strip()
+    """Expand repeat blocks into the simple commands understood by trace_driver.cpp."""
+    blocks = [[]]
+    counts = []
+    for raw in path.read_text().splitlines():
+        line = raw.split("#", 1)[0].strip()
         if not line:
             continue
         words = line.split()
-        if words[0] == "repeat" and len(words) == 2:
-            count = int(words[1], 0)
-            if not 1 <= count <= MAX_EXPANDED:
-                raise ValueError(f"{path}:{number}: invalid repeat count")
-            frames.append(([], count))
-        elif words == ["end"]:
-            if len(frames) == 1:
-                raise ValueError(f"{path}:{number}: unmatched end")
-            body, count = frames.pop()
-            if len(body) * count + len(frames[-1][0]) > MAX_EXPANDED:
-                raise ValueError(f"{path}:{number}: trace too large")
-            frames[-1][0].extend(body * count)
-        elif words[0] in ("map", "load", "store"):
-            expected = 3 if words[0] == "map" else 2
-            if len(words) != expected:
-                raise ValueError(f"{path}:{number}: expected {expected} fields")
-            address = int(words[1], 0)
-            if not 0 <= address < 1 << 48:
-                raise ValueError(f"{path}:{number}: invalid 48-bit address")
-            if words[0] == "map":
-                size = int(words[2], 0)
-                if size <= 0 or address + size > 1 << 48:
-                    raise ValueError(f"{path}:{number}: invalid map size")
-                command = f"map {address:#x} {size}"
-            else:
-                command = f"{words[0]} {address:#x}"
-            frames[-1][0].append(command)
-            if len(frames[-1][0]) > MAX_EXPANDED:
-                raise ValueError(f"{path}:{number}: trace too large")
+        if words[0] == "repeat":
+            blocks.append([])
+            counts.append(int(words[1]))
+        elif words[0] == "end":
+            body = blocks.pop()
+            count = counts.pop()
+            blocks[-1].extend(body * count)
+        elif words[0] == "map":
+            blocks[-1].append(f"map {int(words[1], 0):#x} {int(words[2], 0)}")
         else:
-            raise ValueError(f"{path}:{number}: unknown command")
-    if len(frames) != 1:
-        raise ValueError(f"{path}: unclosed repeat block")
-    return frames[0][0]
+            blocks[-1].append(f"{words[0]} {int(words[1], 0):#x}")
+    return "\n".join(blocks[0]) + "\n"
 
 
-def build_variant(name, source, output, dry_run):
-    binary = output / "build" / name / "trace_driver"
-    driver_copy = binary.parent / "trace_driver.cpp"
-    command = ["g++", "-std=c++11", "-O2", "-Wall", "-I", str(source),
-               *(str(source / file) for file in SOURCES), str(driver_copy), "-o", str(binary)]
-    if dry_run:
-        print("BUILD", shlex.join(command))
-    else:
-        binary.parent.mkdir(parents=True, exist_ok=True)
-        driver_copy.write_bytes((ROOT / "trace_driver.cpp").read_bytes())
-        subprocess.run(command, check=True)
-    return binary
+def build_variant(source, binary):
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    command = ["g++", "-std=c++11", "-O2", "-I", str(source)]
+    command += [str(source / file) for file in SOURCE_FILES]
+    command += ["-x", "c++", "-", "-o", str(binary)]
+    subprocess.run(command, input=(ROOT / "trace_driver.cpp").read_text(),
+                   text=True, check=True)
 
 
-def plot(rows, output, baseline):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+def run_trace(variant, binary, name, metadata, output):
+    trace_file = output / "expanded" / f"{name}.trace"
+    result = subprocess.run([str(binary), str(trace_file)], capture_output=True, text=True)
+    (output / "logs" / f"{variant}__{name}.stdout").write_text(result.stdout)
+    (output / "logs" / f"{variant}__{name}.stderr").write_text(result.stderr)
 
-    ok = [row for row in rows if row["status"] == "ok"]
-    if not ok:
-        return
-    trace_names = list(dict.fromkeys(row["trace"] for row in ok))
-    variants = list(dict.fromkeys(row["variant"] for row in ok))
-    fig, axes = plt.subplots(2, 1, figsize=(max(10, len(trace_names) * 1.6), 9),
-                             constrained_layout=True)
-    width = 0.8 / len(variants)
-    positions = list(range(len(trace_names)))
-    for index, variant in enumerate(variants):
-        by_trace = {row["trace"]: row for row in ok if row["variant"] == variant}
-        x = [pos - 0.4 + width * (index + 0.5) for pos in positions]
-        axes[0].bar(x, [100 * by_trace[t]["tlb_misses"] / by_trace[t]["accesses"]
-                         if t in by_trace and by_trace[t]["accesses"] else 0 for t in trace_names],
-                    width, label=variant)
-        axes[1].bar(x, [by_trace[t]["estimated_total_references"] if t in by_trace else 0
-                         for t in trace_names], width, label=variant)
-    axes[0].set_ylabel("Page table walks / accesses (%)")
-    axes[0].set_title("TLB miss frequency (one walk per miss)")
-    axes[1].set_ylabel("Estimated memory references")
-    axes[1].set_title("Program accesses + 4 page table references per walk")
-    for ax in axes:
-        ax.set_xticks(positions, trace_names, rotation=25, ha="right")
-        ax.legend()
-        ax.grid(axis="y", alpha=0.25)
-    fig.savefig(output / "comparison.png", dpi=160)
-    plt.close(fig)
+    if metadata["expected"] == "fault":
+        assert result.returncode and "Unmapped page" in result.stderr
+        return RunSummary(variant, name, metadata["group"], result.returncode)
+
+    assert result.returncode == 0, f"{variant}/{name}: see logs"
+    stats_line = next(line for line in result.stdout.splitlines()
+                      if line.startswith("TRACE_STATS "))
+    counts = {}
+    for field in stats_line.split()[1:]:
+        key, value = field.split("=")
+        counts[key] = int(value)
+    summary = RunSummary(variant, name, metadata["group"], result.returncode,
+                         counts["accesses"], counts["tlb_hits"], counts["page_faults"])
+    print(f"{variant}/{name}: {summary.accesses} accesses, {summary.tlb_misses} walks, "
+          f"{summary.page_faults} page faults")
+    return summary
+
+
+def save_results(summaries, output, baseline):
+    records = [vars(summary) for summary in summaries]
+    (output / "results.json").write_text(json.dumps(records, indent=2) + "\n")
+    with (output / "results.csv").open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=records[0].keys())
+        writer.writeheader()
+        writer.writerows(records)
 
     if baseline:
-        base = {row["trace"]: row for row in ok if row["variant"] == baseline}
-        comparison = []
-        for row in ok:
-            if row["variant"] == baseline or row["trace"] not in base:
+        base = {s.trace: s for s in summaries if s.variant == baseline and s.accesses is not None}
+        savings = []
+        for summary in summaries:
+            if summary.variant == baseline or summary.accesses is None:
                 continue
-            b = base[row["trace"]]
-            comparison.append({"trace": row["trace"], "variant": row["variant"],
-                               "walks_avoided": b["tlb_misses"] - row["tlb_misses"],
-                               "estimated_references_saved": b["estimated_total_references"]
-                               - row["estimated_total_references"]})
-        (output / "baseline_comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
+            original = base[summary.trace]
+            savings.append({"trace": summary.trace, "variant": summary.variant,
+                            "walks_avoided": original.tlb_misses - summary.tlb_misses,
+                            "estimated_references_saved": original.estimated_total_references
+                            - summary.estimated_total_references})
+        (output / "baseline_comparison.json").write_text(json.dumps(savings, indent=2) + "\n")
+
+
+def plot(summaries, output):
+    data = [s for s in summaries if s.accesses is not None]
+    if not data:
+        return
+    traces = list(dict.fromkeys(s.trace for s in data))
+    variants = list(dict.fromkeys(s.variant for s in data))
+    width = 0.8 / len(variants)
+    fig, axes = plt.subplots(2, 1, figsize=(max(10, len(traces) * 1.5), 9),
+                             constrained_layout=True)
+    for index, variant in enumerate(variants):
+        runs = {s.trace: s for s in data if s.variant == variant}
+        x = [i - 0.4 + width * (index + 0.5) for i in range(len(traces))]
+        axes[0].bar(x, [100 * runs[t].tlb_misses / runs[t].accesses for t in traces],
+                    width, label=variant)
+        axes[1].bar(x, [runs[t].estimated_total_references for t in traces],
+                    width, label=variant)
+    axes[0].set_title("Page table walks per access")
+    axes[0].set_ylabel("Percent")
+    axes[1].set_title("Program accesses + 4 references per page table walk")
+    axes[1].set_ylabel("Estimated memory references")
+    for axis in axes:
+        axis.set_xticks(range(len(traces)), traces, rotation=25, ha="right")
+        axis.legend()
+    fig.savefig(output / "comparison.png", dpi=160)
+    plt.close(fig)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--variant", type=parse_variant, action="append", required=True,
-                        metavar="NAME=SOURCE_DIR", help="source tree for an implementation")
-    parser.add_argument("--baseline", help="name of the no-TLB variant, for paired savings")
+    parser.add_argument("--variant", action="append", required=True, metavar="NAME=SOURCE_DIR")
+    parser.add_argument("--baseline", help="name of the no-TLB variant")
+    parser.add_argument("--trace", action="append", help="trace name; repeatable")
     parser.add_argument("--output", type=Path, default=ROOT / "trace-results")
-    parser.add_argument("--dry-run", action="store_true", help="validate and show commands; write nothing")
-    parser.add_argument("--trace", action="append", help="run only this trace name; repeatable")
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    variants = dict(args.variant)
-    if len(variants) != len(args.variant):
-        parser.error("variant names must be unique")
-    if len(set(variants.values())) != len(variants):
-        parser.error("each variant needs a distinct source directory")
-    if args.baseline and args.baseline not in variants:
-        parser.error("--baseline must name a supplied variant")
 
-    manifest = json.loads((TRACES / "manifest.json").read_text())
-    selected = args.trace or list(manifest)
-    for name in selected:
-        if name not in manifest:
-            parser.error(f"unknown trace {name}")
-    traces = {name: expand_trace(TRACES / f"{name}.trace") for name in selected}
+    variants = {}
+    for item in args.variant:
+        name, path = item.split("=", 1)
+        variants[name] = Path(path).expanduser().resolve()
+    manifest = json.loads((ROOT / "traces" / "manifest.json").read_text())
+    names = args.trace or list(manifest)
     output = args.output.expanduser().resolve()
-    print(f"Output: {output}")
-    for name, source in variants.items():
-        print(f"Variant {name}: {source}")
-    for name, commands in traces.items():
-        print(f"Trace {name}: {len(commands)} operations; expected {manifest[name]['expected']}; "
-              f"{manifest[name]['note']}")
-    binaries = {name: build_variant(name, source, output, args.dry_run)
-                for name, source in variants.items()}
-    if args.dry_run:
-        for variant, binary in binaries.items():
-            for name in selected:
-                print("RUN", shlex.join([str(binary), str(output / "expanded" / f"{name}.trace")]),
-                      f"# {variant}")
-        print("PLOT comparison.png; WRITE results.csv, results.json, raw logs")
-        return 0
 
+    if args.dry_run:
+        for variant, source in variants.items():
+            print(f"BUILD {variant} from {source}")
+            for name in names:
+                print(f"RUN {variant}/{name}: {manifest[name]['note']}")
+        print(f"WRITE results and plots to {output}")
+        return
+
+    for variant, source in variants.items():
+        build_variant(source, output / "build" / variant / "trace_driver")
     (output / "expanded").mkdir(parents=True, exist_ok=True)
     (output / "logs").mkdir(parents=True, exist_ok=True)
-    for name, commands in traces.items():
-        (output / "expanded" / f"{name}.trace").write_text("\n".join(commands) + "\n")
-
-    rows = []
-    for variant, binary in binaries.items():
-        for name in selected:
-            result = subprocess.run([str(binary), str(output / "expanded" / f"{name}.trace")],
-                                    capture_output=True, text=True)
-            (output / "logs" / f"{variant}__{name}.stdout").write_text(result.stdout)
-            (output / "logs" / f"{variant}__{name}.stderr").write_text(result.stderr)
-            expected = manifest[name]["expected"]
-            match = STATS.search(result.stdout)
-            if expected == "fault":
-                if result.returncode == 0 or not UNMAPPED.search(result.stderr):
-                    raise RuntimeError(f"{variant}/{name}: expected unmapped-access failure; see logs")
-                rows.append({"variant": variant, "trace": name, "group": manifest[name]["group"],
-                             "status": "expected_fault", "exit_code": result.returncode})
-                continue
-            if result.returncode or not match:
-                raise RuntimeError(f"{variant}/{name}: execution failed or stats absent; see logs")
-            accesses, hits, faults = map(int, match.groups())
-            if hits > accesses:
-                raise RuntimeError(f"{variant}/{name}: TLB hits exceed accesses")
-            if variant == args.baseline and hits:
-                raise RuntimeError(f"{variant}/{name}: baseline reported {hits} TLB hits; expected no TLB")
-            misses = accesses - hits
-            rows.append({"variant": variant, "trace": name, "group": manifest[name]["group"],
-                         "status": "ok", "accesses": accesses, "tlb_hits": hits,
-                         "tlb_misses": misses, "page_faults": faults,
-                         "estimated_translation_references": 4 * misses,
-                         "estimated_total_references": accesses + 4 * misses,
-                         "exit_code": result.returncode})
-            print(f"{variant}/{name}: accesses={accesses}, hits={hits}, walks={misses}, faults={faults}")
-    (output / "results.json").write_text(json.dumps(rows, indent=2) + "\n")
-    fields = ("variant", "trace", "group", "status", "accesses", "tlb_hits", "tlb_misses",
-              "page_faults", "estimated_translation_references", "estimated_total_references", "exit_code")
-    with (output / "results.csv").open("w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
-    plot(rows, output, args.baseline)
-    print(f"Saved results and plots to {output}")
-    return 0
+    for name in names:
+        (output / "expanded" / f"{name}.trace").write_text(
+            expand_trace(ROOT / "traces" / f"{name}.trace"))
+    summaries = [run_trace(variant, output / "build" / variant / "trace_driver",
+                           name, manifest[name], output)
+                 for variant in variants for name in names]
+    save_results(summaries, output, args.baseline)
+    plot(summaries, output)
+    print(f"Saved results to {output}")
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except (ValueError, OSError, subprocess.CalledProcessError, RuntimeError) as error:
-        print(f"error: {error}", file=sys.stderr)
-        sys.exit(1)
+    main()
