@@ -5,8 +5,16 @@ import argparse
 import csv
 import json
 import subprocess
-from enum import StrEnum
 from pathlib import Path
+
+try:
+    from enum import StrEnum
+except ImportError:  # Python 3.6 on the lab machines
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        def __str__(self):
+            return self.value
 
 import matplotlib
 
@@ -76,14 +84,15 @@ def build_variant(source, binary):
     command += [str(source / file) for file in SOURCE_FILES]
     command += ["-x", "c++", "-", "-o", str(binary)]
     subprocess.run(command, input=(ROOT / "trace_driver.cpp").read_text(),
-                   text=True, check=True)
+                   universal_newlines=True, check=True)
 
 
 def run_trace(variant, binary, name, metadata, output):
     trace_file = output / "expanded" / f"{name}.trace"
-    result = subprocess.run([str(binary), str(trace_file)], capture_output=True, text=True)
-    (output / "logs" / f"{variant}__{name}.stdout").write_text(result.stdout)
-    (output / "logs" / f"{variant}__{name}.stderr").write_text(result.stderr)
+    result = subprocess.run([str(binary), str(trace_file)], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, universal_newlines=True)
+    log = output / variant / f"trace_{name}_{variant}.log"
+    log.write_text(result.stderr + result.stdout)
 
     if metadata["expected"] == "fault":
         assert result.returncode and "Unmapped page" in result.stderr
@@ -104,14 +113,16 @@ def run_trace(variant, binary, name, metadata, output):
 
 
 def save_results(summaries, output, baseline):
-    records = [vars(summary) for summary in summaries]
-    (output / "results.json").write_text(json.dumps(records, indent=2) + "\n")
-    with (output / "results.csv").open("w", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=records[0].keys())
-        writer.writeheader()
-        writer.writerows(records)
+    variants = list(dict.fromkeys(summary.variant for summary in summaries))
+    for variant in variants:
+        records = [vars(summary) for summary in summaries if summary.variant == variant]
+        csv_path = output / variant / f"results_{variant}.csv"
+        with csv_path.open("w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=records[0].keys())
+            writer.writeheader()
+            writer.writerows(records)
 
-    if baseline:
+    if baseline and baseline in variants:
         base = {s.trace: s for s in summaries if s.variant == baseline and s.accesses is not None}
         savings = []
         for summary in summaries:
@@ -146,7 +157,8 @@ def plot(summaries, output):
     axes[1].set_title("Program accesses + 4 references per page table walk")
     axes[1].set_ylabel("Estimated memory references")
     for axis in axes:
-        axis.set_xticks(range(len(traces)), traces, rotation=25, ha="right")
+        axis.set_xticks(range(len(traces)))
+        axis.set_xticklabels(traces, rotation=25, ha="right")
         axis.legend()
     fig.savefig(output / "comparison.png", dpi=160)
     plt.close(fig)
@@ -157,7 +169,7 @@ def main():
     parser.add_argument("--variant", action="append", required=True, metavar="NAME=SOURCE_DIR")
     parser.add_argument("--baseline", help="name of the no-TLB variant")
     parser.add_argument("--trace", action="append", help="trace name; repeatable")
-    parser.add_argument("--output", type=Path, default=ROOT / "trace-results")
+    parser.add_argument("--output", type=Path, default=ROOT / "results")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -174,17 +186,19 @@ def main():
             print(f"BUILD {variant} from {source}")
             for name in names:
                 print(f"RUN {variant}/{name}: {manifest[name]['note']}")
-        print(f"WRITE results and plots to {output}")
+        for variant in variants:
+            print(f"WRITE {output / variant / ('results_' + variant + '.csv')}")
+            print(f"WRITE {output / variant / ('trace_<name>_' + variant + '.log')}")
+        print(f"WRITE {output / 'comparison.png'}")
         return
 
     for variant, source in variants.items():
-        build_variant(source, output / "build" / variant / "trace_driver")
+        build_variant(source, output / variant / "trace_driver")
     (output / "expanded").mkdir(parents=True, exist_ok=True)
-    (output / "logs").mkdir(parents=True, exist_ok=True)
     for name in names:
         (output / "expanded" / f"{name}.trace").write_text(
             expand_trace(ROOT / "traces" / f"{name}.trace"))
-    summaries = [run_trace(variant, output / "build" / variant / "trace_driver",
+    summaries = [run_trace(variant, output / variant / "trace_driver",
                            name, manifest[name], output)
                  for variant in variants for name in names]
     save_results(summaries, output, args.baseline)

@@ -1,0 +1,9 @@
+variant,trace,group,exit_code,accesses,tlb_hits,page_faults,status,tlb_misses,estimated_translation_references,estimated_total_references
+no_tlb,hot_page,locality,0,192,0,1,success_with_page_faults,192,768,960
+no_tlb,cold_stream,locality,0,12,0,12,success_with_page_faults,12,48,60
+no_tlb,sequential_12,capacity,0,96,0,12,success_with_page_faults,96,384,480
+no_tlb,same_set_4,associativity,0,128,0,4,success_with_page_faults,128,512,640
+no_tlb,different_sets_4,associativity,0,128,0,4,success_with_page_faults,128,512,640
+no_tlb,boundaries,page_table,0,48,0,6,success_with_page_faults,48,192,240
+no_tlb,unmapped_access,correctness,1,,,,unmapped_access,,,
+no_tlb,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
