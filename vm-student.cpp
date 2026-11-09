@@ -47,11 +47,17 @@ void VM::vmMap(unsigned long vaddr, size_t size){
   if (size == 0) {
     return;
   }
-
   unsigned long offset = vaddr & VM_PPOMASK;
-  // calculate number of pages in case original address is unaligned
-  // eg. vaddr = 0x1800 and size = VM_PAGESIZE (0x1000) spans
-  // 0x1800 through 0x27FF, so create pages 0x1000 and 0x2000, not just 1 page
+
+  /*
+  * calculate number of pages in case original address is unaligned, eg.
+  * vaddr = 0x1800
+  * size = VM_PAGESIZE (0x1000)
+  * => offset = 0x800 (0x1800 & 0xFFF)
+  * => span from the first page's start = offset + size = 0x1800 bytes
+  * => addresses 0x1800 through 0x27FF need pages 0x1000 and 0x2000
+  * add VM_PAGESIZE - 1 before dividing to round up to 2 pages
+  */
   size_t pages = (offset + size + VM_PAGESIZE - 1) / VM_PAGESIZE;
   for (size_t region = 0; region < pages ; ++region) {
     PTE pte = root;
