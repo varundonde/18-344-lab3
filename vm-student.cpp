@@ -41,23 +41,6 @@ void VM::vmPageFaultHandler(pageTableEntry *pte){
   assert(false && "vmPageFaultHandler not implemented");
 }
 
-/*
- * Task:
- * Implement vmMap
- *
- * Arguments: 
- * vaddr - virtual address to map
- * size - number of bytes in region to map
- *
- * Requires:
- * VM_PPOBITS - number of bits in the physical page offset 
- *
- * Behavior:
- * Updates the page table to include a mappings
- * for size bytes at address vaddr (which may require
- * mapping multiple pages)
- * 
- */
 void VM::vmMap(unsigned long vaddr, size_t size){
 
   std::cerr << "[VM: Mapping Region " << std::hex << vaddr << " " << std::dec << size << "B]" << std::endl;
