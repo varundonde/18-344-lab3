@@ -1,8 +1,6 @@
 #pragma once
 
 #include <map>
-#include <random>
-
 
 /* Your TLB should be modeled after the
  * Intel Skylake DATA TLB L1 with the following
@@ -18,12 +16,22 @@
 #define TLB_WAYS            4
 #endif
 
+//replacement policies
+#define TLB_RANDOM          0
+#define TLB_BIT_PLRU        1
+#define TLB_EXACT_LRU       2
+#define TLB_ROUND_ROBIN     3
+ 
+#ifndef TLB_POLICY
+#define TLB_POLICY          TLB_EXACT_LRU
+#endif
+
 class TLB
 {
 private:
   struct Entry {                               //translated TLB entry
     unsigned long ppn;
-    unsigned long last_used;                   //time of last hit
+    unsigned long last_used;                   //time of last hit/insert
     unsigned long inserted;                    //time entry was filled
     bool used;                                 //bit-PLRU most recently used bit
   };
