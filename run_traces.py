@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent
 SOURCE_FILES = ("pte.cpp", "vm-provided.cpp", "ptab.cpp", "tlb.cpp", "vm-student.cpp")
+WAYS = (1, 2, 4)
 POLICIES = {
     "random": "TLB_RANDOM",
     "bit_plru": "TLB_BIT_PLRU",
@@ -84,9 +85,10 @@ def expand_trace(path):
     return "\n".join(blocks[0]) + "\n"
 
 
-def build_variant(policy, binary):
+def build_variant(policy, ways, binary):
     binary.parent.mkdir(parents=True, exist_ok=True)
-    command = ["g++", "-std=c++11", "-O2", f"-DTLB_POLICY={policy}", "-I", str(ROOT)]
+    command = ["g++", "-std=c++11", "-O2", f"-DTLB_POLICY={policy}",
+               f"-DTLB_WAYS={ways}", "-I", str(ROOT)]
     command += [str(ROOT / file) for file in SOURCE_FILES]
     command += ["-x", "c++", "-", "-o", str(binary)]
     subprocess.run(command, input=(ROOT / "trace_driver.cpp").read_text(),
@@ -150,7 +152,7 @@ def load_baseline(output, names):
     return summaries
 
 
-def plot(summaries, output):
+def plot(summaries, output, ways):
     data = [s for s in summaries if s.accesses is not None]
     if not data:
         return
@@ -174,7 +176,7 @@ def plot(summaries, output):
         axis.set_xticks(range(len(traces)))
         axis.set_xticklabels(traces, rotation=25, ha="right")
         axis.legend()
-    fig.savefig(output / "comparison.png", dpi=160)
+    fig.savefig(output / f"comparison_{ways}way.png", dpi=160)
     plt.close(fig)
 
 
@@ -191,17 +193,18 @@ def main():
     if args.dry_run:
         print(f"READ {output / 'no_tlb' / 'results_no_tlb.csv'}")
         print(f"REUSE {output / 'no_tlb' / 'trace_driver'} for new baseline traces")
-        for variant, policy in POLICIES.items():
-            print(f"BUILD {variant} with {policy}")
-            for name in names:
-                print(f"RUN {variant}/{name}: {manifest[name]['note']}")
-            print(f"WRITE {output / variant / ('results_' + variant + '.csv')}")
-            print(f"WRITE {output / variant / ('trace_<name>_' + variant + '.log')}")
-        print(f"WRITE {output / 'comparison.png'}")
+        print(f"TRACES {', '.join(names)}")
+        for ways in WAYS:
+            for policy_name, policy in POLICIES.items():
+                variant = f"{policy_name}_{ways}way"
+                print(f"BUILD and RUN {variant} with {policy}; WRITE {output / variant / ('results_' + variant + '.csv')}")
+            print(f"WRITE {output / ('comparison_' + str(ways) + 'way.png')}")
         return
 
-    for variant, policy in POLICIES.items():
-        build_variant(policy, output / variant / "trace_driver")
+    for ways in WAYS:
+        for policy_name, policy in POLICIES.items():
+            variant = f"{policy_name}_{ways}way"
+            build_variant(policy, ways, output / variant / "trace_driver")
     (output / "expanded").mkdir(parents=True, exist_ok=True)
     for name in names:
         (output / "expanded" / f"{name}.trace").write_text(
@@ -211,12 +214,18 @@ def main():
                           and manifest[name]["expected"] == "ok"]
     baseline_runs = [run_trace("no_tlb", output / "no_tlb" / "trace_driver",
                                name, manifest[name], output) for name in new_baseline_names]
-    policy_runs = [run_trace(variant, output / variant / "trace_driver",
-                             name, manifest[name], output)
-                   for variant in POLICIES for name in names]
+    policy_runs = []
+    for ways in WAYS:
+        for policy_name in POLICIES:
+            variant = f"{policy_name}_{ways}way"
+            for name in names:
+                policy_runs.append(run_trace(variant, output / variant / "trace_driver",
+                                             name, manifest[name], output))
     save_results(baseline_runs + policy_runs, output)
     baseline = load_baseline(output, names)
-    plot(baseline + policy_runs, output)
+    for ways in WAYS:
+        runs = [run for run in policy_runs if run.variant.endswith(f"_{ways}way")]
+        plot(baseline + runs, output, ways)
     print(f"Saved results to {output}")
 
 
