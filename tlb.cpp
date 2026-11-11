@@ -84,3 +84,8 @@ void TLB::update(unsigned long addr, unsigned long new_PPN){
     }
   }
 }
+
+void TLB::invalidate(unsigned long addr){
+  unsigned long vpn = addr >> TLB_OFFSET_LEN;
+  sets[vpn & TLB_INDEX_MASK].erase(vpn);
+}

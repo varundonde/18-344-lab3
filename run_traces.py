@@ -23,6 +23,12 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parent
 SOURCE_FILES = ("pte.cpp", "vm-provided.cpp", "ptab.cpp", "tlb.cpp", "vm-student.cpp")
+POLICIES = {
+    "random": "TLB_RANDOM",
+    "bit_plru": "TLB_BIT_PLRU",
+    "exact_lru": "TLB_EXACT_LRU",
+    "round_robin": "TLB_ROUND_ROBIN",
+}
 
 
 class RunStatus(StrEnum):
@@ -78,10 +84,10 @@ def expand_trace(path):
     return "\n".join(blocks[0]) + "\n"
 
 
-def build_variant(source, binary):
+def build_variant(policy, binary):
     binary.parent.mkdir(parents=True, exist_ok=True)
-    command = ["g++", "-std=c++11", "-O2", "-I", str(source)]
-    command += [str(source / file) for file in SOURCE_FILES]
+    command = ["g++", "-std=c++11", "-O2", f"-DTLB_POLICY={policy}", "-I", str(ROOT)]
+    command += [str(ROOT / file) for file in SOURCE_FILES]
     command += ["-x", "c++", "-", "-o", str(binary)]
     subprocess.run(command, input=(ROOT / "trace_driver.cpp").read_text(),
                    universal_newlines=True, check=True)
@@ -112,7 +118,7 @@ def run_trace(variant, binary, name, metadata, output):
     return summary
 
 
-def save_results(summaries, output, baseline):
+def save_results(summaries, output):
     variants = list(dict.fromkeys(summary.variant for summary in summaries))
     for variant in variants:
         records = [vars(summary) for summary in summaries if summary.variant == variant]
@@ -122,18 +128,21 @@ def save_results(summaries, output, baseline):
             writer.writeheader()
             writer.writerows(records)
 
-    if baseline and baseline in variants:
-        base = {s.trace: s for s in summaries if s.variant == baseline and s.accesses is not None}
-        savings = []
-        for summary in summaries:
-            if summary.variant == baseline or summary.accesses is None:
-                continue
-            original = base[summary.trace]
-            savings.append({"trace": summary.trace, "variant": summary.variant,
-                            "walks_avoided": original.tlb_misses - summary.tlb_misses,
-                            "estimated_references_saved": original.estimated_total_references
-                            - summary.estimated_total_references})
-        (output / "baseline_comparison.json").write_text(json.dumps(savings, indent=2) + "\n")
+
+
+def load_baseline(output, names):
+    csv_path = output / "no_tlb" / "results_no_tlb.csv"
+    with csv_path.open(newline="") as file:
+        records = list(csv.DictReader(file))
+    summaries = []
+    for row in records:
+        if row["trace"] not in names:
+            continue
+        if row["accesses"]:
+            summaries.append(RunSummary("no_tlb", row["trace"], row["group"], 0,
+                                        int(row["accesses"]), int(row["tlb_hits"]),
+                                        int(row["page_faults"])))
+    return summaries
 
 
 def plot(summaries, output):
@@ -166,43 +175,36 @@ def plot(summaries, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--variant", action="append", required=True, metavar="NAME=SOURCE_DIR")
-    parser.add_argument("--baseline", help="name of the no-TLB variant")
     parser.add_argument("--trace", action="append", help="trace name; repeatable")
     parser.add_argument("--output", type=Path, default=ROOT / "results")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-
-    variants = {}
-    for item in args.variant:
-        name, path = item.split("=", 1)
-        variants[name] = Path(path).expanduser().resolve()
     manifest = json.loads((ROOT / "traces" / "manifest.json").read_text())
     names = args.trace or list(manifest)
     output = args.output.expanduser().resolve()
 
     if args.dry_run:
-        for variant, source in variants.items():
-            print(f"BUILD {variant} from {source}")
+        print(f"READ {output / 'no_tlb' / 'results_no_tlb.csv'}")
+        for variant, policy in POLICIES.items():
+            print(f"BUILD {variant} with {policy}")
             for name in names:
                 print(f"RUN {variant}/{name}: {manifest[name]['note']}")
-        for variant in variants:
             print(f"WRITE {output / variant / ('results_' + variant + '.csv')}")
             print(f"WRITE {output / variant / ('trace_<name>_' + variant + '.log')}")
         print(f"WRITE {output / 'comparison.png'}")
         return
 
-    for variant, source in variants.items():
-        build_variant(source, output / variant / "trace_driver")
+    for variant, policy in POLICIES.items():
+        build_variant(policy, output / variant / "trace_driver")
     (output / "expanded").mkdir(parents=True, exist_ok=True)
     for name in names:
         (output / "expanded" / f"{name}.trace").write_text(
             expand_trace(ROOT / "traces" / f"{name}.trace"))
     summaries = [run_trace(variant, output / variant / "trace_driver",
                            name, manifest[name], output)
-                 for variant in variants for name in names]
-    save_results(summaries, output, args.baseline)
-    plot(summaries, output)
+                 for variant in POLICIES for name in names]
+    save_results(summaries, output)
+    plot(load_baseline(output, names) + summaries, output)
     print(f"Saved results to {output}")
 
 

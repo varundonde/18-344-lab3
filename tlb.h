@@ -2,10 +2,10 @@
 
 #include <map>
 
-/* Your TLB should be modeled after the
- * Intel Skylake DATA TLB L1 with the following
- * parameters
-*/
+/* Model the Skylake L1 data TLB for 4 KiB pages: 16 sets x 4 ways
+ * gives 64 entries by default. This VM only supports 4 KiB pages,
+ * so the separate large-page TLB is not modeled.
+ */
 #define TLB_SET             16
 #define TLB_OFFSET_LEN      12
 #define TLB_INDEX_LEN       4
@@ -42,8 +42,9 @@ private:
   unsigned long time;                          //time counter, increments on lookup/update
 
 public:
-  TLB() : time(0) {}                           //init with empty set @ time = 0
+  TLB() : time(0) {}                                      //init with empty set @ time = 0
   bool lookup(unsigned long addr, unsigned long & PPN);   //lookup fn
   void update(unsigned long addr, unsigned long new_PPN); //update fn
+  void invalidate(unsigned long addr);
 
 };

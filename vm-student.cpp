@@ -17,7 +17,9 @@ void VM::vmPageFaultHandler(pageTableEntry *pte){
   unsigned long paddr = vm->bumpAllocate();
   // all physical pages are occupied -> replace page
   if (paddr == 0x0) {
-    paddr = vm->replacePage().second;
+    std::pair<unsigned long,unsigned long> replaced = vm->replacePage();
+    _TLB->invalidate(replaced.first);
+    paddr = replaced.second;
   }
   pte->ppn = paddr;
   _page_faults++;
@@ -65,10 +67,12 @@ unsigned long VM::vmTranslate(unsigned long addr){
   // extract ppo from virtual address
   unsigned long ppo = addr & VM_PPOMASK;
 
-  /* TODO: 
-  * add TLB check for cached translation once we implement TLB
-  * if hit : tlb_hits ++ 
-   */ 
+  unsigned long cached_ppn;
+  if (_TLB->lookup(addr, cached_ppn)) {
+    _tlb_hits++;
+    _accesses++;
+    return cached_ppn | ppo;
+  }
   
   // traverse from root to get entry for this address
   PTE pte = root;
@@ -95,7 +99,7 @@ unsigned long VM::vmTranslate(unsigned long addr){
     addToReplacementList(addr);
 
   }
-  // TODO: update TLB to cache new translation once we implement TLB
+  _TLB->update(addr, final_pte->ppn);
 
   // assemble and return physical address
   unsigned long phys_addr = (pte.pte->ppn | ppo); 
