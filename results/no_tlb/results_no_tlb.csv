@@ -7,3 +7,6 @@ no_tlb,different_sets_4,associativity,0,128,0,4,success_with_page_faults,128,512
 no_tlb,boundaries,page_table,0,48,0,6,success_with_page_faults,48,192,240
 no_tlb,unmapped_access,correctness,1,,,,unmapped_access,,,
 no_tlb,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
+no_tlb,same_set_5,replacement,0,256,0,5,success_with_page_faults,256,1024,1280
+no_tlb,hot_pair_5,replacement,0,288,0,5,success_with_page_faults,288,1152,1440
+no_tlb,two_sets_10,replacement,0,384,0,10,success_with_page_faults,384,1536,1920

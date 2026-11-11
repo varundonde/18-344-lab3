@@ -7,3 +7,6 @@ bit_plru,different_sets_4,associativity,0,128,124,4,success_with_page_faults,4,1
 bit_plru,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
 bit_plru,unmapped_access,correctness,1,,,,unmapped_access,,,
 bit_plru,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
+bit_plru,same_set_5,replacement,0,256,126,5,success_with_page_faults,130,520,776
+bit_plru,hot_pair_5,replacement,0,288,120,5,success_with_page_faults,168,672,960
+bit_plru,two_sets_10,replacement,0,384,188,10,success_with_page_faults,196,784,1168

@@ -7,3 +7,6 @@ exact_lru,different_sets_4,associativity,0,128,124,4,success_with_page_faults,4,
 exact_lru,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
 exact_lru,unmapped_access,correctness,1,,,,unmapped_access,,,
 exact_lru,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
+exact_lru,same_set_5,replacement,0,256,126,5,success_with_page_faults,130,520,776
+exact_lru,hot_pair_5,replacement,0,288,96,5,success_with_page_faults,192,768,1056
+exact_lru,two_sets_10,replacement,0,384,188,10,success_with_page_faults,196,784,1168

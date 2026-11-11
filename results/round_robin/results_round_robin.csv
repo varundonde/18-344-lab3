@@ -7,3 +7,6 @@ round_robin,different_sets_4,associativity,0,128,124,4,success_with_page_faults,
 round_robin,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
 round_robin,unmapped_access,correctness,1,,,,unmapped_access,,,
 round_robin,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
+round_robin,same_set_5,replacement,0,256,94,5,success_with_page_faults,162,648,904
+round_robin,hot_pair_5,replacement,0,288,48,5,success_with_page_faults,240,960,1248
+round_robin,two_sets_10,replacement,0,384,140,10,success_with_page_faults,244,976,1360

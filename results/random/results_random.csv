@@ -7,3 +7,6 @@ random,different_sets_4,associativity,0,128,124,4,success_with_page_faults,4,16,
 random,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
 random,unmapped_access,correctness,1,,,,unmapped_access,,,
 random,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
+random,same_set_5,replacement,0,256,183,5,success_with_page_faults,73,292,548
+random,hot_pair_5,replacement,0,288,172,5,success_with_page_faults,116,464,752
+random,two_sets_10,replacement,0,384,273,10,success_with_page_faults,111,444,828
