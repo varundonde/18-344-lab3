@@ -1,0 +1,9 @@
+variant,trace,group,exit_code,accesses,tlb_hits,page_faults,status,tlb_misses,estimated_translation_references,estimated_total_references
+bit_plru,hot_page,locality,0,192,191,1,success_with_page_faults,1,4,196
+bit_plru,cold_stream,locality,0,12,0,12,success_with_page_faults,12,48,60
+bit_plru,sequential_12,capacity,0,96,84,12,success_with_page_faults,12,48,144
+bit_plru,same_set_4,associativity,0,128,124,4,success_with_page_faults,4,16,144
+bit_plru,different_sets_4,associativity,0,128,124,4,success_with_page_faults,4,16,144
+bit_plru,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
+bit_plru,unmapped_access,correctness,1,,,,unmapped_access,,,
+bit_plru,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75

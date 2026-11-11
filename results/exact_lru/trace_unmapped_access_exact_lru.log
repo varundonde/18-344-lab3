@@ -1,0 +1,5 @@
+done allocating VM and TLB
+[VM: Mapping Region 70000 4096B]
+[VM: Physical Allocation1000 BP=2000]
+Load[0x70000] => [1000]
+Unmapped page table entry at address 0x71000
