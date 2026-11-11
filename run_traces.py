@@ -123,6 +123,11 @@ def save_results(summaries, output):
     for variant in variants:
         records = [vars(summary) for summary in summaries if summary.variant == variant]
         csv_path = output / variant / f"results_{variant}.csv"
+        if csv_path.exists():
+            with csv_path.open(newline="") as file:
+                previous = {row["trace"]: row for row in csv.DictReader(file)}
+            previous.update({row["trace"]: row for row in records})
+            records = list(previous.values())
         with csv_path.open("w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=records[0].keys())
             writer.writeheader()
@@ -185,6 +190,7 @@ def main():
 
     if args.dry_run:
         print(f"READ {output / 'no_tlb' / 'results_no_tlb.csv'}")
+        print(f"REUSE {output / 'no_tlb' / 'trace_driver'} for new baseline traces")
         for variant, policy in POLICIES.items():
             print(f"BUILD {variant} with {policy}")
             for name in names:
@@ -200,11 +206,17 @@ def main():
     for name in names:
         (output / "expanded" / f"{name}.trace").write_text(
             expand_trace(ROOT / "traces" / f"{name}.trace"))
-    summaries = [run_trace(variant, output / variant / "trace_driver",
-                           name, manifest[name], output)
-                 for variant in POLICIES for name in names]
-    save_results(summaries, output)
-    plot(load_baseline(output, names) + summaries, output)
+    recorded = {run.trace for run in load_baseline(output, names)}
+    new_baseline_names = [name for name in names if name not in recorded
+                          and manifest[name]["expected"] == "ok"]
+    baseline_runs = [run_trace("no_tlb", output / "no_tlb" / "trace_driver",
+                               name, manifest[name], output) for name in new_baseline_names]
+    policy_runs = [run_trace(variant, output / variant / "trace_driver",
+                             name, manifest[name], output)
+                   for variant in POLICIES for name in names]
+    save_results(baseline_runs + policy_runs, output)
+    baseline = load_baseline(output, names)
+    plot(baseline + policy_runs, output)
     print(f"Saved results to {output}")
 
 
