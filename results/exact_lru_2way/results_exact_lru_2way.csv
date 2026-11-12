@@ -1,0 +1,12 @@
+variant,trace,group,exit_code,accesses,tlb_hits,page_faults,status,tlb_misses,estimated_translation_references,estimated_total_references
+exact_lru_2way,hot_page,locality,0,192,191,1,success_with_page_faults,1,4,196
+exact_lru_2way,cold_stream,locality,0,12,0,12,success_with_page_faults,12,48,60
+exact_lru_2way,sequential_12,capacity,0,96,84,12,success_with_page_faults,12,48,144
+exact_lru_2way,same_set_4,associativity,0,128,0,4,success_with_page_faults,128,512,640
+exact_lru_2way,same_set_5,replacement,0,256,94,5,success_with_page_faults,162,648,904
+exact_lru_2way,hot_pair_5,replacement,0,288,0,5,success_with_page_faults,288,1152,1440
+exact_lru_2way,two_sets_10,replacement,0,384,140,10,success_with_page_faults,244,976,1360
+exact_lru_2way,different_sets_4,associativity,0,128,124,4,success_with_page_faults,4,16,144
+exact_lru_2way,boundaries,page_table,0,48,42,6,success_with_page_faults,6,24,72
+exact_lru_2way,unmapped_access,correctness,1,,,,unmapped_access,,,
+exact_lru_2way,page_pressure,replacement,0,15,0,15,success_with_page_faults,15,60,75
