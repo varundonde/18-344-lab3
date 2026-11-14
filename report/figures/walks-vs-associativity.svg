@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="830" height="345" viewBox="0 0 830 345">
+<rect width="100%" height="100%" fill="white"/>
+<text x="415.0" y="25.0" font-family="Helvetica,Arial,sans-serif" font-size="18" fill="#263544" text-anchor="middle" font-weight="bold">Page-table walks vs. TLB associativity</text>
+<text x="415.0" y="45.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="middle" font-weight="normal">Exact LRU, 16 sets</text>
+<line x1="88.0" y1="265.0" x2="805.0" y2="265.0" stroke="#d5dce4" stroke-width="1"/>
+<text x="78.0" y="269.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="end" font-weight="normal">0</text>
+<line x1="88.0" y1="215.0" x2="805.0" y2="215.0" stroke="#d5dce4" stroke-width="1"/>
+<text x="78.0" y="219.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="end" font-weight="normal">25</text>
+<line x1="88.0" y1="165.0" x2="805.0" y2="165.0" stroke="#d5dce4" stroke-width="1"/>
+<text x="78.0" y="169.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="end" font-weight="normal">50</text>
+<line x1="88.0" y1="115.0" x2="805.0" y2="115.0" stroke="#d5dce4" stroke-width="1"/>
+<text x="78.0" y="119.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="end" font-weight="normal">75</text>
+<line x1="88.0" y1="65.0" x2="805.0" y2="65.0" stroke="#d5dce4" stroke-width="1"/>
+<text x="78.0" y="69.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="end" font-weight="normal">100</text>
+<line x1="88.0" y1="65.0" x2="88.0" y2="265.0" stroke="#607080" stroke-width="1"/>
+<line x1="88.0" y1="265.0" x2="805.0" y2="265.0" stroke="#607080" stroke-width="1"/>
+<text x="20.0" y="165.0" transform="rotate(-90 20.0 165.0)" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle">Page-table walks per 100 accesses</text>
+<line x1="207.5" y1="65.0" x2="446.5" y2="65.0" stroke="#2563a6" stroke-width="3"/>
+<line x1="446.5" y1="65.0" x2="685.5" y2="258.8" stroke="#2563a6" stroke-width="3"/>
+<circle cx="207.5" cy="65.0" r="4.5" fill="#2563a6"/>
+<circle cx="446.5" cy="65.0" r="4.5" fill="#2563a6"/>
+<circle cx="685.5" cy="258.8" r="4.5" fill="#2563a6"/>
+<line x1="207.5" y1="65.0" x2="446.5" y2="138.4" stroke="#d27632" stroke-width="3"/>
+<line x1="446.5" y1="138.4" x2="685.5" y2="163.4" stroke="#d27632" stroke-width="3"/>
+<circle cx="207.5" cy="65.0" r="4.5" fill="#d27632"/>
+<circle cx="446.5" cy="138.4" r="4.5" fill="#d27632"/>
+<circle cx="685.5" cy="163.4" r="4.5" fill="#d27632"/>
+<line x1="207.5" y1="65.0" x2="446.5" y2="65.0" stroke="#46926d" stroke-width="3"/>
+<line x1="446.5" y1="65.0" x2="685.5" y2="131.7" stroke="#46926d" stroke-width="3"/>
+<circle cx="207.5" cy="65.0" r="4.5" fill="#46926d"/>
+<circle cx="446.5" cy="65.0" r="4.5" fill="#46926d"/>
+<circle cx="685.5" cy="131.7" r="4.5" fill="#46926d"/>
+<text x="207.5" y="287.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">1</text>
+<text x="446.5" y="287.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">2</text>
+<text x="685.5" y="287.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">4</text>
+<text x="446.5" y="307.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">TLB associativity (ways)</text>
+<rect x="145.0" y="327.0" width="15.0" height="10.0" fill="#2563a6"/>
+<text x="166.0" y="336.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Same set, 4</text>
+<rect x="350.0" y="327.0" width="15.0" height="10.0" fill="#d27632"/>
+<text x="371.0" y="336.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Same set, 5</text>
+<rect x="555.0" y="327.0" width="15.0" height="10.0" fill="#46926d"/>
+<text x="576.0" y="336.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Hot pair, 5</text>
+</svg>
