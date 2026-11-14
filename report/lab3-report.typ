@@ -33,19 +33,19 @@ The TLB was implemented in a similar configuration to the caches from the previo
 
 Each TLB entry contains the VPN's corresponding physical page number (PPN) along with the required information for each replacement policy:
 #enum(
-  enum.item(1)[Exact LRU: Uses ```last_used``` to find and evict the least recently used victim],
-  enum.item(2)[Bit-PLRU: Uses ```used``` to denote recently used entries, this value resets when all entries are used. The first entry not recently used is evicted.],
-  enum.item(3)[Round Robin: Uses ```inserted ``` to find and evict that entered the TLB first.]
+  enum.item(1)[Exact LRU: Uses ``` last_used``` to find and evict the least recently used victim],
+  enum.item(2)[Bit-PLRU: Uses ``` used``` to denote recently used entries, this value resets when all entries are used. The first entry not recently used is evicted.],
+  enum.item(3)[Round Robin: Uses ``` inserted``` to find and evict that entered the TLB first.],
   enum.item(4)[Random: A random entry is evicted.]
 )
 
-The TLB has three functions for its use: ```lookup```, ```udpate```, and ```invalidate```.
+The TLB has three functions for its use: ``` lookup```, ``` udpate```, and ``` invalidate```.
 
-```lookup``` takes in an address and checks its VPN in the TLB. On a miss, it will return false; on a hit, it will return true alongside the PPN and update all of the replacement policy information.
+``` lookup``` takes in an address and checks its VPN in the TLB. On a miss, it will return false; on a hit, it will return true alongside the PPN and update all of the replacement policy information.
 
-```update``` takes in an address and a PPN and creates a new entry in the TLB. It finds the victim based on the replacement policy, erases it, and adds the new entry into the TLB with the VPN, PPN, and replacement policy information.
+``` update``` takes in an address and a PPN and creates a new entry in the TLB. It finds the victim based on the replacement policy, erases it, and adds the new entry into the TLB with the VPN, PPN, and replacement policy information.
 
-```invalidate``` takes in an address and erases its entry from the TLB. When a page is evicted from memory, the page translation in the TLB is now invalidated and must be erased.
+``` invalidate``` takes in an address and erases its entry from the TLB. When a page is evicted from memory, the page translation in the TLB is now invalidated and must be erased.
 
 == Traces
 
@@ -107,5 +107,11 @@ We ran each trace with no TLB and with our default TLB, modeled on the Skylake L
 ) <fig-overall-summary>
 
 = Discussion
+
+Figure 1 shows page-table walk rate versus TLB associativity across multiple traces. Across all three traces, walk rate fell sharply once the trace's working set fit into one TLB set. ``` same_set_4``` has a walk rate of 100% for both 1 and 2 way associativity, but drops to 3.125% when the associativity increases to 4 ways, when the trace's working set equaled the associativity, as only the inital accesses require walks. Both ``` same_set_5``` and ``` hot_pair_5``` have a working set larger than the largest associativity so there are still walks required, but the error rate decreases sharply at 4 ways compared to the smaller associativities.
+
+Figure 2 shows page-table walk rate versus replacement policy across three traces: ``` same_set_5```, ``` hot_pair_5```, ``` two_sets_10```. Random replacement had the lowest walk rates among all four policies across all three traces, then bit-PLRU and LRU were equivalent in two of the three traces with bit-PLRU faring better in the third trace, and round robin was the worst for all three traces.
+
+Figure 3 shows page-table walk rate for all four replacement policies versus associativity across three traces: ``` same_set_5```, ``` hot_pair_5```, ``` two_sets_10```.
 
 = Conclusion
