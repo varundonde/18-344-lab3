@@ -29,6 +29,24 @@ Blue boxes are our implemened procedures, purple boxes are provided operations i
 
 == TLB (TODO: Kushal)
 
+The TLB was implemented in a similar configuration to the caches from the previous lab. Each TLB was made of sets containing TLB entries. When the TLB is accessed, the address is shifted and masked in order to find the virtual page number, or VPN. The VPN corresponds to an entry in the TLB.
+
+Each TLB entry contains the VPN's corresponding physical page number (PPN) along with the required information for each replacement policy:
+#enum(
+  enum.item(1)[Exact LRU: Uses ```last_used``` to find and evict the least recently used victim],
+  enum.item(2)[Bit-PLRU: Uses ```used``` to denote recently used entries, this value resets when all entries are used. The first entry not recently used is evicted.],
+  enum.item(3)[Round Robin: Uses ```inserted ``` to find and evict that entered the TLB first.]
+  enum.item(4)[Random: A random entry is evicted.]
+)
+
+The TLB has three functions for its use: ```lookup```, ```udpate```, and ```invalidate```.
+
+```lookup``` takes in an address and checks its VPN in the TLB. On a miss, it will return false; on a hit, it will return true alongside the PPN and update all of the replacement policy information.
+
+```update``` takes in an address and a PPN and creates a new entry in the TLB. It finds the victim based on the replacement policy, erases it, and adds the new entry into the TLB with the VPN, PPN, and replacement policy information.
+
+```invalidate``` takes in an address and erases its entry from the TLB. When a page is evicted from memory, the page translation in the TLB is now invalidated and must be erased.
+
 == Traces
 
 We created the following traces to test our VM system.
