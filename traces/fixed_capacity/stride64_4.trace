@@ -1,0 +1,11 @@
+# Four pages 64 VPNs apart, so they share a TLB set at every tested set count.
+map 0x10000 4096
+map 0x50000 4096
+map 0x90000 4096
+map 0xd0000 4096
+repeat 32
+  load 0x10000
+  load 0x50000
+  load 0x90000
+  load 0xd0000
+end

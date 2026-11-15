@@ -2,19 +2,30 @@
 
 #include <map>
 
-/* Model the Skylake L1 data TLB for 4 KiB pages: 16 sets x 4 ways
- * gives 64 entries by default. This VM only supports 4 KiB pages,
- * so the separate large-page TLB is not modeled.
+/* By default, model the 64-entry Skylake L1 data TLB for 4 KiB pages.
+ * TLB_TOTAL_ENTRIES can be fixed while TLB_WAYS changes for a capacity-
+ * controlled associativity sweep. Large-page translations are not modeled.
  */
-#define TLB_SET             16
 #define TLB_OFFSET_LEN      12
-#define TLB_INDEX_LEN       4
-#define TLB_INDEX_MASK      0xF
 
 //If no associativity defined, default to 4-way
 #ifndef TLB_WAYS
 #define TLB_WAYS            4
 #endif
+
+#ifndef TLB_TOTAL_ENTRIES
+#define TLB_TOTAL_ENTRIES   (16 * TLB_WAYS)
+#endif
+
+#if TLB_WAYS < 1 || TLB_TOTAL_ENTRIES % TLB_WAYS != 0
+#error "TLB_WAYS must divide TLB_TOTAL_ENTRIES"
+#endif
+
+#define TLB_SET             (TLB_TOTAL_ENTRIES / TLB_WAYS)
+#if (TLB_SET & (TLB_SET - 1)) != 0
+#error "The number of TLB sets must be a power of two"
+#endif
+#define TLB_INDEX_MASK      (TLB_SET - 1)
 
 //replacement policies
 #define TLB_RANDOM          0

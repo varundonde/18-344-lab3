@@ -1,0 +1,24 @@
+# Five pages in each of two adjacent sets for all tested set counts.
+map 0x10000 8192
+map 0x50000 8192
+map 0x90000 8192
+map 0xd0000 8192
+map 0x110000 8192
+repeat 24
+  load 0x10000
+  load 0x11000
+  load 0x50000
+  load 0x51000
+  load 0x90000
+  load 0x91000
+  load 0xd0000
+  load 0xd1000
+  load 0x10000
+  load 0x11000
+  load 0x110000
+  load 0x111000
+  load 0x10000
+  load 0x11000
+  load 0x50000
+  load 0x51000
+end

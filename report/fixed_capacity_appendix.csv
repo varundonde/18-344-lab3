@@ -1,0 +1,64 @@
+stride64_4,64,1,Exact LRU,128,0,4,128
+stride64_4,64,1,Bit PLRU,128,0,4,128
+stride64_4,64,1,Round robin,128,0,4,128
+stride64_4,64,1,Random,128,0,4,128
+stride64_4,32,2,Exact LRU,128,0,4,128
+stride64_4,32,2,Bit PLRU,128,0,4,128
+stride64_4,32,2,Round robin,128,0,4,128
+stride64_4,32,2,Random,128,16,4,112
+stride64_4,16,4,Exact LRU,128,124,4,4
+stride64_4,16,4,Bit PLRU,128,124,4,4
+stride64_4,16,4,Round robin,128,124,4,4
+stride64_4,16,4,Random,128,124,4,4
+stride64_4,8,8,Exact LRU,128,124,4,4
+stride64_4,8,8,Bit PLRU,128,124,4,4
+stride64_4,8,8,Round robin,128,124,4,4
+stride64_4,8,8,Random,128,124,4,4
+stride64_5,64,1,Exact LRU,256,0,5,256
+stride64_5,64,1,Bit PLRU,256,0,5,256
+stride64_5,64,1,Round robin,256,0,5,256
+stride64_5,64,1,Random,256,0,5,256
+stride64_5,32,2,Exact LRU,256,94,5,162
+stride64_5,32,2,Bit PLRU,256,94,5,162
+stride64_5,32,2,Round robin,256,63,5,193
+stride64_5,32,2,Random,256,71,5,185
+stride64_5,16,4,Exact LRU,256,126,5,130
+stride64_5,16,4,Bit PLRU,256,126,5,130
+stride64_5,16,4,Round robin,256,94,5,162
+stride64_5,16,4,Random,256,183,5,73
+stride64_5,8,8,Exact LRU,256,251,5,5
+stride64_5,8,8,Bit PLRU,256,251,5,5
+stride64_5,8,8,Round robin,256,251,5,5
+stride64_5,8,8,Random,256,251,5,5
+stride64_hot_pair_5,64,1,Exact LRU,288,0,5,288
+stride64_hot_pair_5,64,1,Bit PLRU,288,0,5,288
+stride64_hot_pair_5,64,1,Round robin,288,0,5,288
+stride64_hot_pair_5,64,1,Random,288,0,5,288
+stride64_hot_pair_5,32,2,Exact LRU,288,0,5,288
+stride64_hot_pair_5,32,2,Bit PLRU,288,0,5,288
+stride64_hot_pair_5,32,2,Round robin,288,0,5,288
+stride64_hot_pair_5,32,2,Random,288,29,5,259
+stride64_hot_pair_5,16,4,Exact LRU,288,96,5,192
+stride64_hot_pair_5,16,4,Bit PLRU,288,120,5,168
+stride64_hot_pair_5,16,4,Round robin,288,48,5,240
+stride64_hot_pair_5,16,4,Random,288,172,5,116
+stride64_hot_pair_5,8,8,Exact LRU,288,283,5,5
+stride64_hot_pair_5,8,8,Bit PLRU,288,283,5,5
+stride64_hot_pair_5,8,8,Round robin,288,283,5,5
+stride64_hot_pair_5,8,8,Random,288,283,5,5
+stride64_two_sets_10,64,1,Exact LRU,384,0,10,384
+stride64_two_sets_10,64,1,Bit PLRU,384,0,10,384
+stride64_two_sets_10,64,1,Round robin,384,0,10,384
+stride64_two_sets_10,64,1,Random,384,0,10,384
+stride64_two_sets_10,32,2,Exact LRU,384,140,10,244
+stride64_two_sets_10,32,2,Bit PLRU,384,140,10,244
+stride64_two_sets_10,32,2,Round robin,384,94,10,290
+stride64_two_sets_10,32,2,Random,384,99,10,285
+stride64_two_sets_10,16,4,Exact LRU,384,188,10,196
+stride64_two_sets_10,16,4,Bit PLRU,384,188,10,196
+stride64_two_sets_10,16,4,Round robin,384,140,10,244
+stride64_two_sets_10,16,4,Random,384,273,10,111
+stride64_two_sets_10,8,8,Exact LRU,384,374,10,10
+stride64_two_sets_10,8,8,Bit PLRU,384,374,10,10
+stride64_two_sets_10,8,8,Round robin,384,374,10,10
+stride64_two_sets_10,8,8,Random,384,374,10,10

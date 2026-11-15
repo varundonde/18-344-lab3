@@ -13,6 +13,7 @@ from xml.sax.saxutils import escape
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 FIGURES = Path(__file__).resolve().parent / "figures"
+BASELINE_TABLE = Path(__file__).resolve().parent / "default_tlb_comparison.csv"
 POLICIES = ("exact_lru", "bit_plru", "round_robin", "random")
 COLORS = ("#2563a6", "#d27632", "#46926d", "#9b65a5")
 NAMES = {"exact_lru": "Exact LRU", "bit_plru": "Bit PLRU",
@@ -101,6 +102,21 @@ def references(row):
     return row["accesses"] + 4 * row["tlb_misses"]
 
 
+def write_baseline_table():
+    with BASELINE_TABLE.open("w", newline="") as output:
+        writer = csv.writer(output)
+        for trace in TRACES:
+            baseline = DATA["no_tlb"][trace]
+            tlb = DATA["exact_lru_4way"][trace]
+            if baseline["accesses"] != tlb["accesses"]:
+                raise ValueError(f"Access counts differ for {trace}")
+            writer.writerow((trace, tlb["accesses"], tlb["page_faults"],
+                             tlb["tlb_hits"], baseline["tlb_misses"],
+                             tlb["tlb_misses"], references(baseline),
+                             references(tlb),
+                             f"{references(baseline) / references(tlb):.2f}"))
+
+
 def associativity():
     # All three traces have repeated set-conflict walks whose rate changes
     # with associativity. two_sets_10 is omitted because its line almost
@@ -183,13 +199,15 @@ def translation_cost():
     traces = ("hot_page", "cold_stream", "sequential_12", "same_set_4",
               "different_sets_4", "page_pressure")
     svg = SVG(830, 350)
-    svg.text(415, 25, "Translation cost with and without TLB", 18,
+    svg.text(415, 25, "Memory access efficiency with TLB vs without TLB", 18,
              anchor="middle", weight="bold")
-    svg.text(415, 45, "Four page-table references per miss, exact LRU, 4 ways", 11,
+    svg.text(415, 45,
+             "1 data reference per TLB hit; 1 data reference + 4 page-table reads per TLB miss",
+             11,
              anchor="middle")
     left, top, right, bottom = 88, 65, 805, 260
     axes(svg, left, top, right, bottom, 5, (0, 1, 2, 3, 4, 5),
-         "Memory references per access")
+         "Modeled references per access")
     group = (right - left) / len(traces)
     for i, trace in enumerate(traces):
         center = left + group * (i + 0.5)
@@ -211,9 +229,10 @@ def reference_breakdown():
               "same_set_5", "hot_pair_5", "two_sets_10", "different_sets_4",
               "boundaries", "page_pressure")
     svg = SVG(830, 450)
-    svg.text(415, 25, "Overall reference breakdown by trace", 18,
+    svg.text(415, 25, "Program memory accesses vs. modeled page-table references by trace", 18,
              anchor="middle", weight="bold")
-    svg.text(415, 45, "Exact LRU, 16 sets, 4 ways", 11, anchor="middle")
+    svg.text(415, 45, "Measured with a 64-entry, 16-set, 4-way exact-LRU TLB",
+             11, anchor="middle")
     left, top, right = 180, 70, 790
     max_value = max(references(DATA["exact_lru_4way"][t]) for t in traces)
     scale = (right - left) / (max_value * 1.08)
@@ -229,14 +248,15 @@ def reference_breakdown():
         svg.rect(left + row["accesses"] * scale, y, 4 * row["tlb_misses"] * scale, 18, COLORS[1])
         svg.text(left + references(row) * scale + 7, y + 13, references(row), 10)
     svg.vertical_text(20, 220, "Trace (category)", 12)
-    svg.text((left + right) / 2, 407, "Estimated memory references (count)", 12,
+    svg.text((left + right) / 2, 407, "Number of references", 12,
              anchor="middle")
-    legend(svg, [("Program accesses", COLORS[0]), ("Translation references", COLORS[1])],
+    legend(svg, [("Loads/stores", COLORS[0]), ("Modeled page-table references", COLORS[1])],
            215, 443, 215)
     svg.save("overall-reference-breakdown.svg")
 
 
 if __name__ == "__main__":
+    write_baseline_table()
     associativity()
     policy()
     policy_by_ways()

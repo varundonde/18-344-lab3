@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="830" height="450" viewBox="0 0 830 450">
 <rect width="100%" height="100%" fill="white"/>
-<text x="415.0" y="25.0" font-family="Helvetica,Arial,sans-serif" font-size="18" fill="#263544" text-anchor="middle" font-weight="bold">Overall reference breakdown by trace</text>
-<text x="415.0" y="45.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="middle" font-weight="normal">Exact LRU, 16 sets, 4 ways</text>
+<text x="415.0" y="25.0" font-family="Helvetica,Arial,sans-serif" font-size="18" fill="#263544" text-anchor="middle" font-weight="bold">Program memory accesses vs. modeled page-table references by trace</text>
+<text x="415.0" y="45.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="middle" font-weight="normal">Measured with a 64-entry, 16-set, 4-way exact-LRU TLB</text>
 <line x1="180.0" y1="70.0" x2="180.0" y2="365.0" stroke="#d5dce4" stroke-width="1"/>
 <text x="180.0" y="382.0" font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#263544" text-anchor="middle" font-weight="normal">0</text>
 <line x1="276.7" y1="70.0" x2="276.7" y2="365.0" stroke="#d5dce4" stroke-width="1"/>
@@ -55,9 +55,9 @@
 <rect x="187.3" y="335.0" width="29.0" height="18.0" fill="#d27632"/>
 <text x="223.3" y="348.0" font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#263544" text-anchor="start" font-weight="normal">75</text>
 <text x="20.0" y="220.0" transform="rotate(-90 20.0 220.0)" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle">Trace (category)</text>
-<text x="485.0" y="407.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">Estimated memory references (count)</text>
+<text x="485.0" y="407.0" font-family="Helvetica,Arial,sans-serif" font-size="12" fill="#263544" text-anchor="middle" font-weight="normal">Number of references</text>
 <rect x="215.0" y="432.0" width="15.0" height="10.0" fill="#2563a6"/>
-<text x="236.0" y="441.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Program accesses</text>
+<text x="236.0" y="441.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Loads/stores</text>
 <rect x="430.0" y="432.0" width="15.0" height="10.0" fill="#d27632"/>
-<text x="451.0" y="441.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Translation references</text>
+<text x="451.0" y="441.0" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#263544" text-anchor="start" font-weight="normal">Modeled page-table references</text>
 </svg>

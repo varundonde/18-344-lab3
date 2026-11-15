@@ -1,0 +1,16 @@
+# Five pages in the same set, with extra reuse of the first page.
+map 0x10000 4096
+map 0x50000 4096
+map 0x90000 4096
+map 0xd0000 4096
+map 0x110000 4096
+repeat 32
+  load 0x10000
+  load 0x50000
+  load 0x90000
+  load 0xd0000
+  load 0x10000
+  load 0x110000
+  load 0x10000
+  load 0x50000
+end

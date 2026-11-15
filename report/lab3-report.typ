@@ -27,7 +27,7 @@ Next, we implemented ```C createEntry(unsigned long addr, size_t level)```, whic
 
 Blue boxes are our implemened procedures, purple boxes are provided operations in the handout code, and green boxes are end conditions. `vmMap` creates paged-out leaf entries. On a page fault, the handler tries to `bumpAllocate`, and if no frame is free, `replacePage` evicts a page and the handler invalidates its TLB entry before reusing the frame. `vmTranslate` adds the new resident page to the replacement list.
 
-== TLB (TODO: Kushal)
+== TLB
 
 The TLB was implemented in a similar configuration to the caches from the previous lab. Each TLB was made of sets containing TLB entries. When the TLB is accessed, the address is shifted and masked in order to find the virtual page number, or VPN. The VPN corresponds to an entry in the TLB.
 
@@ -39,7 +39,7 @@ Each TLB entry contains the VPN's corresponding physical page number (PPN) along
   enum.item(4)[Random: A random entry is evicted.]
 )
 
-The TLB has three functions for its use: ``` lookup```, ``` udpate```, and ``` invalidate```.
+The TLB has three functions for its use: ``` lookup```, ``` update```, and ``` invalidate```.
 
 ``` lookup``` takes in an address and checks its VPN in the TLB. On a miss, it will return false; on a hit, it will return true alongside the PPN and update all of the replacement policy information.
 
@@ -66,6 +66,10 @@ We created the following traces to test our VM system.
     [`same_set_5`], [Five pages competing in one TLB set], [Evictions and repeated walks at 4 ways],
     [`hot_pair_5`], [Two hot pages competing with three others], [Replacement-policy-dependent walks],
     [`two_sets_10`], [Five competing pages in each of two sets], [Evictions and repeated walks in both sets],
+    [`stride64_4`], [Four pages spaced 64 VPNs apart], [Walks on every access at 1 and 2 ways, four initial walks at 4 and 8],
+    [`stride64_5`], [Five pages spaced 64 VPNs apart], [Evictions below 8 ways, then five initial walks],
+    [`stride64_hot_pair_5`], [Two hot pages and three competitors spaced 64 VPNs apart], [Policy-dependent walks at 2 and 4 ways],
+    [`stride64_two_sets_10`], [Five competing pages in each of two sets], [Evictions in both sets below 8 ways],
     [`different_sets_4`], [Four pages mapping to separate TLB sets], [Four compulsory walks, then TLB hits],
     [`boundaries`], [Unaligned mappings across 4 KiB, 2 MiB, and 1 GiB boundaries], [Mapped accesses succeed with six page faults],
     [`unmapped_access`], [Load outside the mapped range], [Access violation and nonzero exit],
@@ -73,45 +77,92 @@ We created the following traces to test our VM system.
   )))
 }
 
+The `stride64` traces use the same access patterns as the corresponding non-stride traces, but place competing pages 64 VPNs apart so their set index stays the same regardless of the number of TLB sets. For example, VPNs 16 and 80 both map to set 16 with 64 sets (`VPN mod 64`), and both map to set 0 with 8 sets (`VPN mod 8`).
+
 Together, these traces cover first loads / stores, page reuse, TLB set conflicts, replacement and eviction, page-table boundaries, physical-memory exhaustion, and invalid memory accesses. Their mix of loads and stores tests both normal translation and fault handling. The exact operations in each trace are included in our submission for your reference. 
 
 == Testing
 
-We ran each trace with no TLB and with our default TLB, modeled on the Skylake L1 data TLB for 4 KiB pages. It has 16 sets and four ways, for 64 entries, and uses exact LRU replacement. We then kept the 16 sets fixed while varying associativity across one, two, and four ways and comparing exact LRU, bit-PLRU, round robin, and random eviction. The results below compare page-table walks and estimated memory-reference costs across these configurations.
+#block(breakable: false)[
+We ran the original traces with no TLB and with our default TLB, modeled on the Skylake L1 data TLB for 4 KiB pages. It has 16 sets and four ways, for 64 entries, and uses exact LRU replacement. For the configuration sweep, we held the TLB at 64 entries and varied associativity across one, two, four, and eight ways. This gives 64, 32, 16, and 8 sets, respectively. We ran exact LRU, bit-PLRU, round robin, and random replacement on the fixed-capacity conflict traces.
+]
 
 = Results
 
 #figure(
-  image("figures/walks-vs-associativity.svg", width: 90%),
-  caption: [Walk rate on three set-conflict traces as TLB associativity changes.],
-) <fig-associativity>
-
-#figure(
-  image("figures/policy-at-four-ways.svg", width: 90%),
-  caption: [Walk rate by replacement policy at four ways.],
-) <fig-policy>
-
-#figure(
-  image("figures/policy-across-ways.svg", width: 90%),
-  caption: [Walk rate by policy and associativity on the contention traces.],
-) <fig-policy-ways>
-
-#figure(
   image("figures/translation-reference-cost.svg", width: 90%),
-  caption: [Estimated memory references per access with and without the TLB.],
 ) <fig-translation-cost>
 
 #figure(
   image("figures/overall-reference-breakdown.svg", width: 90%),
-  caption: [Program and translation references with the default TLB.],
 ) <fig-overall-summary>
+
+#figure(
+  image("figures/fixed64-walks-vs-associativity.svg", width: 90%),
+) <fig-associativity>
+
+#figure(
+  image("figures/fixed64-policy-at-four-ways.svg", width: 90%),
+) <fig-policy>
+
+#figure(
+  image("figures/fixed64-policy-across-ways.svg", width: 90%),
+) <fig-policy-ways>
+
+#pagebreak()
 
 = Discussion
 
-Figure 1 shows page-table walk rate versus TLB associativity across multiple traces. Across all three traces, walk rate fell sharply once the trace's working set fit into one TLB set. ``` same_set_4``` has a walk rate of 100% for both 1 and 2 way associativity, but drops to 3.125% when the associativity increases to 4 ways, when the trace's working set equaled the associativity, as only the inital accesses require walks. Both ``` same_set_5``` and ``` hot_pair_5``` have a working set larger than the largest associativity so there are still walks required, but the error rate decreases sharply at 4 ways compared to the smaller associativities.
+We preface our results with the fact that our data probably doesn't generalize to real world workloads, the use of arithmetic mean to get the speedup in the performance summary isn't representative of the frequency at which these traces occur in everyday use for different people, but is just what we observed while collecting data. The full per-trace data can be referred to in the appendix.
 
-Figure 2 shows page-table walk rate versus replacement policy across three traces: ``` same_set_5```, ``` hot_pair_5```, ``` two_sets_10```. Random replacement had the lowest walk rates among all four policies across all three traces, then bit-PLRU and LRU were equivalent in two of the three traces with bit-PLRU faring better in the third trace, and round robin was the worst for all three traces.
+== Performance Summary
 
-Figure 3 shows page-table walk rate for all four replacement policies versus associativity across three traces: ``` same_set_5```, ``` hot_pair_5```, ``` two_sets_10```.
+To answer our first question, we ran the VM system with and without a TLB. In our model, a TLB hit counts as one memory reference for the program's load or store. A TLB miss counts as five memory references, which are composed of: the program's reference + four references to walk the four-level page table. Figure 1 plots *total modeled references divided by the number of program accesses* (loads and stores). Trivially, we see that without a TLB, every access requires five references based on our model. On the other hand, TLB measurements vary per trace. For example, `hot_page` falls to 1.02 references per access and `sequential_12` falls to 1.5 because later accesses reuse cached translations. The `cold_stream` and `page_pressure` traces remain at five because each page is accessed only once so a cache doesn't help. We chose this subset to contrast reuse within one page, reuse across pages and TLB sets, and one-time streaming accesses.
+
+Figure 2 shows the counts behind this result. With the default TLB, `hot_page` makes 192 loads and stores but adds only four modeled page-table references. In contrast, `two_sets_10` makes 384 loads and stores and adds 784 page-table references because its translations keep competing within two sets. Together, figures 1 and 2 show that the TLB helps most when later accesses reuse translations. When page-table walks remain frequent, the translation work can exceed the program's own memory accesses. Across our ten successful original traces, the arithmetic mean reduction in page-table walks was 60.0%, and the arithmetic mean modeled speedup was 2.71$times$. 
+
+== Design Space Exploration
+
+To answer our second question, we varied TLB associativity while holding the TLB at 64 entries. As we increased the ways from one to eight, the number of sets fell from 64 to eight. We chose this comparison because more ways can reduce set conflicts without adding TLB entries, although they still need more tag comparison and replacement logic. Figure 3 shows that `stride64_4` walks on every access at one and two ways, then falls to 3.125 walks per 100 accesses at four and eight ways. The five-page traces still have repeated walks at four ways, but fall to their compulsory walks at eight ways when all five pages fit in a set.
+
+We were also curious about how replacement policy affects page-table walks and our modeled VM efficiency. Figures 4 and 5 use the same 64-entry TLB and conflict traces. At four ways, random had the lowest walk rate on all three traces, while round robin had the highest. On `stride64_hot_pair_5`, random caused 116 walks compared with 240 for round robin, which corresponds to 496 fewer modeled page-table references. At two ways, however, exact LRU and bit-PLRU beat random on `stride64_5`, with 162 walks versus 185. At eight ways the policies converge because the five competing pages fit in a set. These results are based on a sparse set of traces we created, so they do not establish a general winner among replacement policies.
 
 = Conclusion
+
+#pagebreak()
+
+= Appendix
+
+== Original Traces: No TLB vs Default TLB
+
+`unmapped_access` is omitted because its expected access violation occurs before the driver prints counters.
+
+#{
+  set text(size: 8pt)
+  let rows = csv("default_tlb_comparison.csv")
+  table(
+    columns: (1.6fr, 0.65fr, 0.6fr, 0.65fr, 0.8fr, 0.7fr, 0.75fr, 0.7fr, 0.65fr),
+    inset: (x: 3pt, y: 3pt),
+    stroke: 0.4pt,
+    align: left,
+    table.header([Trace], [Accesses], [Faults], [TLB hits], [No-TLB walks], [TLB walks], [No-TLB refs], [TLB refs], [Modeled speedup]),
+    ..rows.flatten().map(cell => [#cell]),
+  )
+}
+
+#pagebreak()
+
+== Fixed-Capacity Sweep
+
+#{
+  set text(size: 7.5pt)
+  let rows = csv("fixed_capacity_appendix.csv")
+  table(
+    columns: (1.8fr, 0.5fr, 0.5fr, 0.95fr, 0.75fr, 0.75fr, 0.8fr, 0.65fr),
+    inset: (x: 3pt, y: 2pt),
+    stroke: 0.4pt,
+    align: left,
+    table.header([Trace], [Sets], [Ways], [Policy], [Accesses], [TLB hits], [Page faults], [Walks]),
+    ..rows.flatten().map(cell => [#cell]),
+  )
+}
