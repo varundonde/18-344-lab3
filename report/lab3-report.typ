@@ -131,6 +131,9 @@ These results are based on a sparse set of traces we created, so they do not est
 
 = Conclusion
 
+The goal of this lab was to build a software model of virtual memory, including a four-level page table, page fault handling and a TLB, and to measure how much caching translations reduces the cost of address translation. Without a TLB, every access costs five memory references; with a 64-entry, 4-way TLB, traces that reuse pages approach one, with hot_page at 1.02 and sequential_12 at 1.5. Across our ten original traces, the TLB removed 60.0% of page-table walks on average, for a mean modeled speedup of 2.71×. It gave no benefit when each page was used only once, and when translations kept competing for one set, walk traffic exceeded the program’s own accesses. In short, a TLB turns translation from the largest cost of a memory access into a small overhead, but only for workloads that reuse pages.
+
+For TLB design, associativity mattered most: at a fixed 64 entries, walks fell sharply once the number of ways matched the number of pages competing for a set, so a 4-way TLB like Skylake’s removes conflicts for small working sets without needing eight comparators per lookup. Replacement policy mattered only when a set overflowed, and no policy won everywhere. Random was best on our cyclic traces at four ways but worse than LRU at two, while bit-PLRU matched or beat exact LRU with far less hardware state. Overall, the best design depends on how many pages compete for a set, and a 4-way TLB with bit-PLRU is a cost-effective choice for the small working sets we tested. Future work could add traces with realistic temporal locality and average random replacement over several seeds.
 #pagebreak()
 
 = Appendix
