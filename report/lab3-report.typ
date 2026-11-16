@@ -129,7 +129,7 @@ To isolate the effect of eviction policy, we held the TLB at 64 entries and four
 
 = Conclusion
 
-In conclusion, based on the speedup delivered on our set of traces, we see that the TLB is crucial in the processes of address translation and memory mapping. We would recommend the following configurations for these workloads:
+In conclusion, based on the speedup delivered on our set of traces, we see that the TLB is crucial for address translation during loads and stores. We would recommend the following configurations for these workloads:
 
 - *Fewer page-table walks:* We'd recommend a 64-entry, 8-way TLB for workloads like our conflict traces, to ensure as many competing pages as possible fit in the same TLB set.
 - *Simpler design:* We'd recommend a 64-entry, 4-way TLB with random replacement. Random produced the fewest walks across our three policy traces at four ways and does not need to track the full LRU order.
